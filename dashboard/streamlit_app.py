@@ -19,10 +19,37 @@ from src import capacity, config, database  # noqa: E402
 st.set_page_config(page_title="Tráfego e Capacidade — Servidor Web", page_icon="🛰️", layout="wide")
 CORES_RISCO = {"BAIXO": "#3a9a5b", "MÉDIO": "#e07b39", "ALTO": "#c0392b"}
 FIG = config.FIGURES_DIR
+DIAS_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
+# Eixos dos gráficos em português: datas só com números e milhar com ponto (1.600, e não 1,600)
+EIXO_DATA = alt.Axis(format="%d/%m %Hh", labelAngle=0, labelOverlap=True)
+EIXO_NUM = {"labelExpr": "replace(datum.label, ',', '.')"}
 
 
 def fmt(v: float, casas: int = 0) -> str:
     return f"{v:,.{casas}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def tabela(df: pd.DataFrame, nomes: dict, datas: tuple = ()) -> None:
+    """Mostra a tabela com títulos em português, números no formato do navegador (1.107,5) e datas dd/mm/aaaa."""
+    df = df.copy()
+    for c in datas:
+        df[c] = pd.to_datetime(df[c])
+    cfg = {}
+    for c in df.columns:
+        rotulo = nomes.get(c, c)
+        if c in datas:
+            cfg[c] = st.column_config.DatetimeColumn(rotulo, format="DD/MM/YYYY HH:mm")
+        elif pd.api.types.is_numeric_dtype(df[c]) and df[c].isna().any():
+            # valor ausente aparece como "—" (e não "None"); os demais no formato brasileiro
+            inteiro = df[c].dropna().mod(1).eq(0).all()
+            df[c] = df[c].map(lambda v: "—" if pd.isna(v) else fmt(v, 0 if inteiro else 1))
+            cfg[c] = st.column_config.TextColumn(rotulo)
+        elif pd.api.types.is_numeric_dtype(df[c]) and c != "id":
+            cfg[c] = st.column_config.NumberColumn(rotulo, format="localized")
+        else:
+            df[c] = df[c].replace({"{}": "—", None: "—"})
+            cfg[c] = st.column_config.Column(rotulo)
+    st.dataframe(df, column_config=cfg, width="stretch", hide_index=True)
 
 
 @st.cache_data
@@ -46,7 +73,7 @@ cap_base = card["capacidade_referencia_req_15min"]
 st.sidebar.header("Momento da decisão")
 datas = sorted(prev["data_hora"].dt.date.unique())
 dia = st.sidebar.selectbox("Dia (período de teste)", datas, index=len(datas) - 1,
-                           format_func=lambda d: d.strftime("%d/%m/%Y (%a)"))
+                           format_func=lambda d: f"{d:%d/%m/%Y} ({DIAS_SEMANA[d.weekday()]})")
 horarios = prev.loc[prev["data_hora"].dt.date == dia, "data_hora"].dt.strftime("%H:%M").tolist()
 alvo_txt = st.sidebar.select_slider("Horário a prever (daqui a 1h)", options=horarios,
                                     value="11:00" if "11:00" in horarios else horarios[-1])
@@ -92,10 +119,13 @@ jan = cen[(cen["data_hora"] >= ini) & (cen["data_hora"] < fim)]
 longo = jan.melt("data_hora", ["real", "previsto_cenario"], var_name="serie", value_name="req")
 longo["serie"] = longo["serie"].map({"real": "Real", "previsto_cenario": "Previsto (1h antes)"})
 graf = alt.Chart(longo).mark_line().encode(
-    x=alt.X("data_hora:T", title=None), y=alt.Y("req:Q", title="requisições por 15 min"),
-    color=alt.Color("serie:N", scale=alt.Scale(range=["#e07b39", "#222222"]), title=None))
+    x=alt.X("data_hora:T", title=None, axis=EIXO_DATA),
+    y=alt.Y("req:Q", title="requisições por 15 min", axis=alt.Axis(**EIXO_NUM)),
+    color=alt.Color("serie:N", scale=alt.Scale(range=["#e07b39", "#222222"]), title=None),
+    tooltip=[alt.Tooltip("data_hora:T", title="Data e hora", format="%d/%m/%Y %H:%M"),
+             alt.Tooltip("serie:N", title="Série"), alt.Tooltip("req:Q", title="Requisições", format=".0f")])
 regras = alt.Chart(pd.DataFrame({"y": [capacidade, 0.9 * capacidade], "n": ["Capacidade", "Limiar ALTO"]})) \
-    .mark_rule(color="#c0392b", strokeDash=[4, 3]).encode(y="y:Q", tooltip="n:N")
+    .mark_rule(color="#c0392b", strokeDash=[4, 3]).encode(y="y:Q", tooltip=alt.Tooltip("n:N", title="Linha"))
 marca = alt.Chart(pd.DataFrame({"x": [alvo]})).mark_rule(color="#1f5f8b", size=2).encode(x="x:T")
 st.altair_chart((graf + regras + marca).properties(height=320), width="stretch")
 
@@ -110,28 +140,37 @@ with aba1:
     por_hora = (cen.assign(hora=cen["data_hora"].dt.hour, alto=cen["risco_cenario"].eq("ALTO"))
                    .groupby("hora")["alto"].mean().mul(100).reset_index())
     st.altair_chart(alt.Chart(por_hora).mark_bar(color="#c0392b").encode(
-        x=alt.X("hora:O", title="hora do dia"), y=alt.Y("alto:Q", title="% dos intervalos em risco ALTO"))
+        x=alt.X("hora:O", title="hora do dia", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("alto:Q", title="% dos intervalos em risco ALTO", axis=alt.Axis(**EIXO_NUM)),
+        tooltip=[alt.Tooltip("hora:O", title="Hora"), alt.Tooltip("alto:Q", title="% em risco ALTO", format=".1f")])
         .properties(height=260, title="Horários em que a saturação se concentra"), width="stretch")
     st.info("Teste nos controles da barra lateral: se a demanda crescer 30%, quanto é preciso expandir "
             "a capacidade para zerar as horas de risco ALTO?")
 
 with aba2:
-    st.dataframe(metricas.round(3), width="stretch", hide_index=True)
+    tabela(metricas.round(3), {"modelo": "Modelo", "MAPE": "MAPE (%)", "R2": "R²"})
     st.markdown("Escolha feita pela **validação cruzada temporal** no treino (tabela abaixo); o teste é usado "
                 "uma única vez. As baselines de série temporal são a referência mínima a superar.")
     colunas_cv = [c for c in ["modelo", "RMSE_cv_media", "RMSE_cv_desvio", "MAE_cv_media", "MAE_cv_desvio",
                               "combinacoes_testadas", "melhores_parametros"] if c in cv.columns]
-    st.dataframe(cv[colunas_cv].round(1), width="stretch", hide_index=True)
+    tabela(cv[colunas_cv].round(1), {
+        "modelo": "Modelo", "RMSE_cv_media": "RMSE (média)", "RMSE_cv_desvio": "RMSE (desvio)",
+        "MAE_cv_media": "MAE (média)", "MAE_cv_desvio": "MAE (desvio)",
+        "combinacoes_testadas": "Combinações testadas", "melhores_parametros": "Melhores parâmetros"})
     col1, col2 = st.columns(2)
     col1.image(str(FIG / "06_comparacao_modelos.png")); col2.image(str(FIG / "08_importancia_atributos.png"))
     col1.image(str(FIG / "09_erro_por_hora.png")); col2.image(str(FIG / "11_matriz_confusao_risco.png"))
 
 with aba3:
     st.image(str(FIG / "13_perfis_diarios.png"))
-    st.dataframe(dias_cl.groupby("perfil").agg(dias=("cluster", "size"), req_por_dia=("req_dia", "mean"))
-                 .round(0).reset_index(), width="stretch", hide_index=True)
+    tabela(dias_cl.groupby("perfil").agg(dias=("cluster", "size"), req_por_dia=("req_dia", "mean"))
+           .round(0).reset_index(), {"perfil": "Perfil", "dias": "Dias", "req_por_dia": "Requisições por dia (média)"})
     st.image(str(FIG / "14_perfis_clientes.png"))
-    st.dataframe(clientes_cl.round(1), width="stretch", hide_index=True)
+    tabela(clientes_cl.round(1), {
+        "perfil": "Perfil", "hosts": "Clientes", "req_mediana": "Requisições (mediana)",
+        "horas_ativas_mediana": "Horas ativas (mediana)", "kb_por_req": "KB por requisição",
+        "taxa_erro_media": "Taxa de erro média (%)", "pct_cache_304": "Respostas 304 - cache (%)",
+        "req_total": "Requisições (total)", "pct_do_trafego": "% do tráfego", "pct_dos_hosts": "% dos clientes"})
     st.image(str(FIG / "12_escolha_k.png"))
 
 with aba4:
@@ -141,7 +180,8 @@ with aba4:
     b.metric("Clientes distintos", fmt(q["hosts_distintos"]))
     c.metric("Horas sem registros", fmt(q["horas_em_lacunas"], 1))
     d.metric("Respostas com erro", f"{fmt(q['percentual_erros_4xx_5xx'], 2)}%")
-    st.dataframe(pd.DataFrame(q["lacunas"]), width="stretch", hide_index=True)
+    st.markdown("**Períodos sem registros** (servidor fora do ar ou log perdido)")
+    tabela(pd.DataFrame(q["lacunas"]), {"inicio": "Início", "fim": "Fim", "horas": "Horas"}, datas=("inicio", "fim"))
     st.image(str(FIG / "01_serie_temporal.png")); st.image(str(FIG / "04_status_http.png"))
 
 with aba5:
@@ -151,4 +191,8 @@ with aba5:
     if hist.empty:
         st.info("Nenhuma previsão registrada ainda. Ligue a API e faça uma consulta em http://127.0.0.1:8000/docs")
     else:
-        st.dataframe(hist.drop(columns=["entrada"]), width="stretch", hide_index=True)
+        tabela(hist.drop(columns=["entrada"]), {
+            "id": "Nº", "criado_em": "Consultado em", "origem": "Endpoint", "previsao_para": "Previsão para",
+            "volume_previsto": "Volume previsto", "utilizacao_percentual": "Utilização (%)",
+            "risco_saturacao": "Risco", "volume_real": "Volume real", "modelo": "Modelo",
+            "versao_modelo": "Versão do modelo"}, datas=("criado_em", "previsao_para"))

@@ -1,0 +1,7 @@
+# Configuração do dashboard (lida quando o Streamlit é iniciado na pasta do projeto)
+[client]
+# Esconde o botão "Deploy" e as opções de desenvolvedor (menu mais limpo para a apresentação)
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false
