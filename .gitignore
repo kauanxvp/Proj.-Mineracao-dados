@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+models/*.joblib
+outputs/trafego.db
+data/raw/*.csv
+data/raw/*.zip
+!data/raw/nasa_access_log_1995.zip
+data/raw/*.gz
+mlflow.db
+mlruns/
+.dvc/tmp/

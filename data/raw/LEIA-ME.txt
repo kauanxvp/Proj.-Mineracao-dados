@@ -1,0 +1,11 @@
+Base de dados do projeto.
+
+Nesta pasta já está o arquivo nasa_access_log_1995.zip: é o "NASA access log dataset 1995" baixado do Kaggle,
+com o data.csv (2.965.561 requisições, jul-ago/1995). O pipeline lê direto do .zip, sem precisar extrair.
+
+Alternativas aceitas pelo pipeline:
+  - o data.csv extraído do zip (240 MB);
+  - os logs originais do Internet Traffic Archive: NASA_access_log_Jul95.gz e NASA_access_log_Aug95.gz
+    (tente: python -m src.download_data).
+
+Não abra o data.csv no Excel: ele tem quase 3 milhões de linhas e o Excel corta em cerca de 1 milhão.

@@ -1,0 +1,22 @@
+# Pipeline declarado para o DVC: "dvc repro" só refaz se a base, o código ou o params.yaml mudarem.
+# Sem DVC, o mesmo caminho roda com: python -m src.pipeline
+stages:
+  pipeline:
+    cmd: python -m src.pipeline
+    deps:
+      - data/raw/nasa_access_log_1995.zip
+      - src
+    params:
+      - semente
+      - divisao
+      - previsao
+      - capacidade
+      - modelos
+    outs:
+      - models/modelo_trafego.joblib:
+          cache: false
+      - outputs/trafego.db:
+          cache: false
+    metrics:
+      - outputs/metrics.json:
+          cache: false

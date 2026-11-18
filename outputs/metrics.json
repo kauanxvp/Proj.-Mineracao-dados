@@ -1,0 +1,14 @@
+{
+  "modelo": "Random Forest",
+  "MAE": 81.1491,
+  "RMSE": 111.847,
+  "MAPE": 19.0798,
+  "R2": 0.8766,
+  "risco_alto": {
+    "precision": 0.868,
+    "recall": 0.628,
+    "f1-score": 0.728,
+    "support": 94.0
+  },
+  "rmse_cv_media": 109.788
+}

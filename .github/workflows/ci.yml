@@ -1,0 +1,21 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  pipeline-e-testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Testes unitários (não precisam de modelo treinado)
+        run: pytest -q tests/test_preparacao.py tests/test_serie_temporal.py
+      # A base (nasa_access_log_1995.zip, 31 MB) está no repositório: o CI refaz o caminho dado -> modelo
+      - name: Pipeline completo (dados -> treino -> avaliação -> artefatos)
+        run: python -m src.pipeline
+      - name: Testes de integração (modelo, métricas e API)
+        run: pytest -q
+      - name: Build da imagem Docker
+        run: docker build -t trafego-capacidade:ci .

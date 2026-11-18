@@ -1,0 +1,75 @@
+{
+  "versao": "20261118-135132",
+  "modelo": "Random Forest",
+  "melhores_parametros": {
+    "max_depth": "None",
+    "max_features": "0.5",
+    "min_samples_leaf": "5"
+  },
+  "tarefa": "prever requisições por 15 min com 1 hora de antecedência",
+  "dados": {
+    "arquivos": [
+      "nasa_access_log_1995.zip"
+    ],
+    "hash_md5": "12c1e8e77c96355dfd24093d981f7bbe",
+    "registros": 2965561
+  },
+  "treino": {
+    "inicio": "1995-07-08 00:00:00",
+    "fim": "1995-08-23 07:30:00",
+    "intervalos": 3330
+  },
+  "teste": {
+    "inicio": "1995-08-23 07:45:00",
+    "fim": "1995-08-31 23:45:00",
+    "intervalos": 833
+  },
+  "metricas_teste": {
+    "MAE": 81.1491,
+    "RMSE": 111.847,
+    "MAPE": 19.0798,
+    "R2": 0.8766
+  },
+  "capacidade_referencia_req_15min": 1107.0,
+  "capacidade_referencia_req_s": 1.23,
+  "regra_risco": "BAIXO < 70% <= MÉDIO < 90% <= ALTO (utilização = previsão / capacidade)",
+  "risco_alto": {
+    "precision": 0.868,
+    "recall": 0.628,
+    "f1-score": 0.728,
+    "support": 94.0
+  },
+  "features": [
+    "hora",
+    "dia_semana",
+    "fim_de_semana",
+    "feriado",
+    "hora_sin",
+    "hora_cos",
+    "dia_sin",
+    "dia_cos",
+    "req_1h_atras",
+    "req_1h15_atras",
+    "req_1h30_atras",
+    "req_1h45_atras",
+    "req_24h_atras",
+    "req_7d_atras",
+    "media_movel_1h",
+    "media_movel_24h",
+    "desvio_movel_24h",
+    "hosts_1h_atras",
+    "taxa_erro_1h_atras",
+    "mb_1h_atras"
+  ],
+  "versoes": {
+    "python": "3.13.18",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.1"
+  },
+  "mlflow": {
+    "run_id": "1b928e58264448a08a16651a6bad6c08",
+    "modelo_registrado": "previsao-trafego-1h",
+    "versao_registro": 3,
+    "run_pipeline": "84f38399198b4841b12e9b675f3dc503"
+  }
+}

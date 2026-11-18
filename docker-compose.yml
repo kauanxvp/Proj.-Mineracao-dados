@@ -1,0 +1,17 @@
+# docker compose up --build  ->  API em :8000/docs, dashboard em :8501, MLflow em :5000
+services:
+  api:
+    build: .
+    image: trafego-capacidade:1.1
+    ports: ["8000:8000"]
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000
+  dashboard:
+    image: trafego-capacidade:1.1
+    depends_on: [api]
+    ports: ["8501:8501"]
+    command: streamlit run dashboard/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+  mlflow:
+    image: trafego-capacidade:1.1
+    depends_on: [api]
+    ports: ["5000:5000"]
+    command: mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 5000

@@ -1,0 +1,46 @@
+# Parâmetros do experimento: sementes, divisão, horizonte, regras de capacidade e grades de hiperparâmetros.
+# Mudou algo aqui? Rode de novo: python -m src.pipeline  (ou dvc repro)
+
+semente: 42                 # random_state usado em todo o código
+
+dados:
+  resolucao: 15min          # tamanho de cada intervalo da série
+  lacuna_minima_passos: 4   # >= 1 h seguida sem nenhuma requisição = servidor fora do ar
+  feriados: ["1995-07-04"]  # Independence Day (EUA)
+
+divisao:
+  teste: 0.20               # últimos 20% do tempo; sem embaralhar
+  dobras_cv: 3              # TimeSeriesSplit no treino
+
+previsao:
+  horizonte_passos: 4       # prever com 1 hora de antecedência (4 x 15 min)
+
+capacidade:
+  percentil: 0.95           # capacidade de referência = P95 do treino
+  limiar_medio: 0.70        # utilização a partir da qual o risco é MÉDIO
+  limiar_alto: 0.90         # utilização a partir da qual o risco é ALTO
+
+modelos:
+  random_forest:
+    n_estimators: 200
+    grade:
+      max_depth: [null, 12]
+      min_samples_leaf: [1, 5]
+      max_features: [0.5, 1.0]
+  gradient_boosting:
+    max_iter: 300
+    grade:
+      learning_rate: [0.03, 0.1]
+      max_depth: [3, null]
+      min_samples_leaf: [20, 50]
+  rede_neural:
+    max_iter: 500
+    grade:
+      hidden_layer_sizes: [[32], [64, 32]]
+      alpha: [0.001, 0.01, 0.1]
+  arima_fourier:
+    grade:
+      p: [1, 2]
+      q: [1]
+      k_diario: [6, 10]
+      k_semanal: [3]

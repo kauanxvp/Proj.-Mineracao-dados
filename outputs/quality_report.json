@@ -1,0 +1,51 @@
+{
+  "registros": 2965561,
+  "total_oficial": 3461612,
+  "percentual_do_oficial": 85.7,
+  "periodo_inicio": "1995-07-01 00:00:01",
+  "periodo_fim": "1995-08-31 23:59:53",
+  "hosts_distintos": 135268,
+  "urls_distintas": 365,
+  "valores_nulos": {
+    "host": 0,
+    "data_hora": 0,
+    "metodo": 0,
+    "url": 0,
+    "status": 0,
+    "bytes": 0
+  },
+  "linhas_identicas": 1087,
+  "status_http": {
+    "200": 2696600,
+    "302": 6912,
+    "304": 258161,
+    "404": 3858,
+    "501": 30
+  },
+  "percentual_erros_4xx_5xx": 0.131,
+  "metodos_http": {
+    "GET": 2957882,
+    "HEAD": 7649,
+    "POST": 30
+  },
+  "respostas_sem_corpo_bytes_0": 281255,
+  "intervalos_15min_esperados": 5952,
+  "intervalos_sem_requisicao": 484,
+  "lacunas": [
+    {
+      "inicio": "1995-07-28 13:45:00",
+      "fim": "1995-08-01 00:00:00",
+      "horas": 82.25
+    },
+    {
+      "inicio": "1995-08-01 15:00:00",
+      "fim": "1995-08-03 04:30:00",
+      "horas": 37.5
+    }
+  ],
+  "horas_em_lacunas": 119.75,
+  "arquivos": [
+    "nasa_access_log_1995.zip"
+  ],
+  "hash_md5": "12c1e8e77c96355dfd24093d981f7bbe"
+}
